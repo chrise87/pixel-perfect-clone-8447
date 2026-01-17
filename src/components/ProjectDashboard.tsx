@@ -1,3 +1,23 @@
+/**
+ * ProjectDashboard Component
+ * 
+ * DEVELOPER NOTES FOR INTEGRATION:
+ * - This is the main project dashboard showing overview of all project data
+ * - Props to wire up:
+ *   - project: Project object from your backend
+ *   - onBack/onOpen*: navigation callbacks
+ *   - onAddCollaborator/onAddTask/onAddBundle: modal triggers
+ * 
+ * - Backend connections needed:
+ *   - Fetch project data from your API
+ *   - Wire up stage progress to actual project stages
+ *   - Connect team management to user service
+ * 
+ * - UI Changes:
+ *   - Project To-Do now has "View All" button
+ *   - Library Bundles renamed to Library Documents
+ */
+
 import { ArrowLeft, Settings, Plus, UserPlus, Upload, MoreVertical, ChevronDown, ChevronUp, Sparkles, CheckCircle, FileText, FolderOpen, ListTodo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -251,10 +271,10 @@ export function ProjectDashboard({
 
         <Card className="p-5">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-base font-semibold">Library Bundles</h2>
+            <h2 className="text-base font-semibold">Library Documents</h2>
             <Button size="sm" onClick={onAddBundle} className="gap-1.5">
               <Plus className="h-4 w-4" />
-              Add
+              Manage
             </Button>
           </div>
           <div className="flex flex-col gap-2">
@@ -265,13 +285,13 @@ export function ProjectDashboard({
               </div>
             ))}
             {project.appliedBundles.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">No bundles applied</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No documents applied</p>
             )}
           </div>
         </Card>
       </div>
 
-      {/* Tasks Row */}
+      {/* Tasks Row - Both with View All */}
       <div className="grid grid-cols-2 gap-6">
         <Card className="p-5">
           <div className="flex justify-between items-center mb-4">
@@ -303,6 +323,10 @@ export function ProjectDashboard({
         <Card className="p-5">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-base font-semibold">Project To-Do</h2>
+            <Button size="sm" variant="ghost" onClick={onOpenTasks} className="gap-1.5 text-primary">
+              <ListTodo className="h-4 w-4" />
+              View All
+            </Button>
           </div>
           <div className="flex flex-col gap-2">
             {project.globalTodos.filter(t => t.status !== 'completed').slice(0, 3).map(todo => (
