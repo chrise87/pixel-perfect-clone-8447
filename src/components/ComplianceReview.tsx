@@ -1,9 +1,30 @@
-import { ArrowLeft, Upload, Send, Library, FileText, X, Check } from "lucide-react";
+/**
+ * ComplianceReview Component
+ * 
+ * DEVELOPER NOTES FOR INTEGRATION:
+ * - This component handles document compliance review with AI
+ * - Props to wire up:
+ *   - project: Project object with files and appliedBundles
+ *   - onBack: navigation callback
+ *   - onSaveToReviews: callback to save review results to project
+ * 
+ * - Backend changes needed:
+ *   - File upload endpoint for documents to review
+ *   - AI/LLM integration for actual compliance checking
+ *   - Chat endpoint for follow-up questions after initial review
+ *   - Replace mock responses with actual API calls
+ * 
+ * - After initial review, component switches to chat mode for refinement
+ * - Folder navigation allows selecting specific project folders as context
+ */
+
+import { ArrowLeft, Upload, Send, Library, FileText, X, Check, Folder, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Project, FileItem } from "@/types/project";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -28,12 +49,37 @@ export function ComplianceReview({ project, onBack, onSaveToReviews }: Complianc
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
   const [isReviewing, setIsReviewing] = useState(false);
   const [messages, setMessages] = useState<ReviewMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
 
-  // Get root folders from project
-  const projectFolders = project.files.filter(f => f.type === 'folder' && f.parentId === null);
+  // Get folders for navigation
+  const getFolderContents = (parentId: string | null) => {
+    return project.files.filter(f => f.parentId === parentId && f.type === 'folder');
+  };
+
+  // Get breadcrumb path for folder navigation
+  const getFolderBreadcrumbs = () => {
+    const breadcrumbs: { id: string | null; name: string }[] = [{ id: null, name: 'Project Root' }];
+    let currentId = currentFolderId;
+    
+    while (currentId) {
+      const folder = project.files.find(f => f.id === currentId);
+      if (folder) {
+        breadcrumbs.splice(1, 0, { id: folder.id, name: folder.name });
+        currentId = folder.parentId;
+      } else {
+        break;
+      }
+    }
+    
+    return breadcrumbs;
+  };
+
+  const currentFolders = getFolderContents(currentFolderId);
+  const folderBreadcrumbs = getFolderBreadcrumbs();
 
   const handleUploadFiles = () => {
-    // Simulate file upload
+    // TODO: Replace with actual file upload
     const mockFiles = [
       `Document-${Date.now()}.pdf`,
       `Report-${Date.now() + 1}.pdf`
@@ -78,22 +124,47 @@ export function ComplianceReview({ project, onBack, onSaveToReviews }: Complianc
     const systemMessage: ReviewMessage = {
       id: Date.now() + 1,
       role: 'system',
-      content: `Reviewing against: ${selectedBundles.length} library bundles, ${selectedFolders.length} project folders`,
+      content: `Reviewing against: ${selectedBundles.length} library documents, ${selectedFolders.length} project folders`,
       timestamp: new Date()
     };
 
     setMessages([userMessage, systemMessage]);
 
-    // Simulate review response
+    // Simulate review response - TODO: Replace with actual AI call
     setTimeout(() => {
       const assistantMessage: ReviewMessage = {
         id: Date.now() + 2,
         role: 'assistant',
-        content: `## Compliance Review Summary\n\n**Documents Reviewed:** ${uploadedFiles.length}\n\n### Findings:\n\n1. **Section 4.2 - Fire Compartmentation**\n   - ⚠️ Missing reference to BS 9991 clause 6.4\n   - Recommendation: Add explicit reference to travel distance calculations\n\n2. **Section 5.1 - Smoke Control**\n   - ✅ Compliant with ADB Volume 2\n   - Note: Consider adding CIBSE Guide E reference\n\n3. **General**\n   - Document version control: Current\n   - Cross-references: 85% complete\n\n*This is a demo review. Full AI analysis would provide detailed compliance checking.*`,
+        content: `## Compliance Review Summary\n\n**Documents Reviewed:** ${uploadedFiles.length}\n\n### Findings:\n\n1. **Section 4.2 - Fire Compartmentation**\n   - ⚠️ Missing reference to BS 9991 clause 6.4\n   - Recommendation: Add explicit reference to travel distance calculations\n\n2. **Section 5.1 - Smoke Control**\n   - ✅ Compliant with ADB Volume 2\n   - Note: Consider adding CIBSE Guide E reference\n\n3. **General**\n   - Document version control: Current\n   - Cross-references: 85% complete\n\n*Feel free to ask follow-up questions to refine this review.*`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
     }, 2000);
+  };
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+
+    const userMessage: ReviewMessage = {
+      id: Date.now(),
+      role: 'user',
+      content: chatInput,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+
+    // Simulate AI response - TODO: Replace with actual chat API call
+    setTimeout(() => {
+      const assistantMessage: ReviewMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: `Thanks for your question about "${chatInput.slice(0, 30)}..."\n\nBased on my review of the documents, here's additional context:\n\n- The relevant section references BS EN 1991-1-2 for fire loading calculations\n- Cross-referencing with your project specifications, I recommend reviewing Section 3.4\n- For detailed guidance, consider consulting CIBSE TM19\n\nWould you like me to elaborate on any specific aspect?`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    }, 1500);
   };
 
   const canStartReview = uploadedFiles.length > 0;
@@ -131,7 +202,7 @@ export function ComplianceReview({ project, onBack, onSaveToReviews }: Complianc
         <div className="flex-1 flex flex-col">
           {!isReviewing ? (
             // Upload Phase
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-6 overflow-auto">
               <div className="max-w-2xl mx-auto">
                 {/* Upload Area */}
                 <Card className="p-6 mb-6">
@@ -172,26 +243,70 @@ export function ComplianceReview({ project, onBack, onSaveToReviews }: Complianc
                   )}
                 </Card>
 
-                {/* Select Project Folder */}
+                {/* Select Project Folder with Navigation */}
                 <Card className="p-6 mb-6">
                   <h2 className="text-base font-semibold mb-3">Reference Project Folders (Optional)</h2>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Select project folders to include as context
+                    Navigate and select project folders to include as context
                   </p>
-                  <div className="space-y-2">
-                    {projectFolders.map(folder => (
-                      <label
-                        key={folder.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer"
-                      >
-                        <Checkbox 
-                          checked={selectedFolders.includes(folder.id)}
-                          onCheckedChange={() => toggleFolder(folder.id)}
-                        />
-                        <span className="text-sm">{folder.name}</span>
-                      </label>
+                  
+                  {/* Folder Breadcrumb Navigation */}
+                  <div className="flex items-center gap-1 mb-3 text-xs">
+                    {folderBreadcrumbs.map((crumb, idx) => (
+                      <div key={crumb.id ?? 'root'} className="flex items-center gap-1">
+                        {idx > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                        <button
+                          onClick={() => setCurrentFolderId(crumb.id)}
+                          className={cn(
+                            "hover:text-primary transition-colors",
+                            idx === folderBreadcrumbs.length - 1 ? "text-foreground font-medium" : "text-muted-foreground"
+                          )}
+                        >
+                          {crumb.name}
+                        </button>
+                      </div>
                     ))}
                   </div>
+
+                  {/* Folder List */}
+                  <div className="border border-border rounded-lg max-h-[200px] overflow-auto">
+                    {currentFolders.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No subfolders in this location
+                      </div>
+                    ) : (
+                      currentFolders.map(folder => (
+                        <div
+                          key={folder.id}
+                          className="flex items-center gap-3 p-3 border-b border-border last:border-0 hover:bg-secondary/50"
+                        >
+                          <Checkbox 
+                            checked={selectedFolders.includes(folder.id)}
+                            onCheckedChange={() => toggleFolder(folder.id)}
+                          />
+                          <button 
+                            className="flex items-center gap-2 flex-1 text-left"
+                            onDoubleClick={() => setCurrentFolderId(folder.id)}
+                          >
+                            <Folder className="h-4 w-4 text-warning" />
+                            <span className="text-sm">{folder.name}</span>
+                          </button>
+                          <button 
+                            onClick={() => setCurrentFolderId(folder.id)}
+                            className="text-xs text-muted-foreground hover:text-primary"
+                          >
+                            Open →
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  
+                  {selectedFolders.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {selectedFolders.length} folder{selectedFolders.length !== 1 ? 's' : ''} selected
+                    </p>
+                  )}
                 </Card>
 
                 {/* Start Review Button */}
@@ -207,54 +322,72 @@ export function ComplianceReview({ project, onBack, onSaveToReviews }: Complianc
               </div>
             </div>
           ) : (
-            // Review Results
-            <ScrollArea className="flex-1 p-6">
-              <div className="max-w-3xl mx-auto space-y-4">
-                {messages.map(message => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex",
-                      message.role === 'user' ? "justify-end" : "justify-start"
-                    )}
-                  >
+            // Chat Review Mode
+            <div className="flex-1 flex flex-col">
+              <ScrollArea className="flex-1 p-6">
+                <div className="max-w-3xl mx-auto space-y-4">
+                  {messages.map(message => (
                     <div
+                      key={message.id}
                       className={cn(
-                        "max-w-[85%] rounded-xl px-4 py-3",
-                        message.role === 'user' && "bg-primary text-primary-foreground",
-                        message.role === 'system' && "bg-muted text-muted-foreground text-xs",
-                        message.role === 'assistant' && "bg-secondary text-foreground"
+                        "flex",
+                        message.role === 'user' ? "justify-end" : "justify-start"
                       )}
                     >
-                      {message.files && (
-                        <div className="mb-2 space-y-1">
-                          {message.files.map(file => (
-                            <Badge key={file} variant="secondary" className="text-xs mr-1">
-                              {file}
-                            </Badge>
-                          ))}
+                      <div
+                        className={cn(
+                          "max-w-[85%] rounded-xl px-4 py-3",
+                          message.role === 'user' && "bg-primary text-primary-foreground",
+                          message.role === 'system' && "bg-muted text-muted-foreground text-xs",
+                          message.role === 'assistant' && "bg-secondary text-foreground"
+                        )}
+                      >
+                        {message.files && (
+                          <div className="mb-2 space-y-1">
+                            {message.files.map(file => (
+                              <Badge key={file} variant="secondary" className="text-xs mr-1">
+                                {file}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="text-sm whitespace-pre-wrap prose prose-sm dark:prose-invert max-w-none">
+                          {message.content}
                         </div>
-                      )}
-                      <div className="text-sm whitespace-pre-wrap prose prose-sm dark:prose-invert max-w-none">
-                        {message.content}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </ScrollArea>
+
+              {/* Chat Input */}
+              <div className="p-4 border-t border-border">
+                <div className="max-w-3xl mx-auto flex gap-2">
+                  <Input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask a follow-up question to refine the review..."
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSendMessage} disabled={!chatInput.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </ScrollArea>
+            </div>
           )}
         </div>
 
-        {/* Right Sidebar - Library Bundles */}
+        {/* Right Sidebar - Library Documents */}
         <div className="w-72 border-l border-border p-4 overflow-auto">
           <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
             <Library className="h-4 w-4" />
-            Review Against
+            Library Documents
           </h3>
 
           <p className="text-xs text-muted-foreground mb-3">
-            Select library bundles to check compliance against
+            Select library documents to check compliance against
           </p>
 
           <div className="space-y-2">
@@ -282,7 +415,7 @@ export function ComplianceReview({ project, onBack, onSaveToReviews }: Complianc
               </label>
             ))}
             {project.appliedBundles.length === 0 && (
-              <p className="text-xs text-muted-foreground">No bundles applied to this project</p>
+              <p className="text-xs text-muted-foreground">No library documents applied to this project</p>
             )}
           </div>
         </div>

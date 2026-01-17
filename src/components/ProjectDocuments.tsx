@@ -1,7 +1,25 @@
+/**
+ * ProjectDocuments Component
+ * 
+ * DEVELOPER NOTES FOR INTEGRATION:
+ * - This component displays a folder/file browser for project documents
+ * - Props to wire up:
+ *   - project: Project object with files array (FileItem[])
+ *   - onBack: navigation callback
+ *   - onUpdateFiles: callback to persist file changes to your backend
+ * 
+ * - Backend changes needed:
+ *   - File upload endpoint to handle actual file uploads
+ *   - File/folder CRUD operations
+ *   - Replace mock file uploads with actual API calls
+ * 
+ * - The status column has been removed as requested
+ * - Files are now displayed in a cleaner folder-style view
+ */
+
 import { ArrowLeft, Folder, File, Upload, FolderPlus, MoreVertical, Trash2, Move, Download, ChevronRight, FileText, FileSpreadsheet, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -118,7 +136,7 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
   };
 
   const handleUploadClick = () => {
-    // In a real app, this would trigger file upload
+    // TODO: Replace with actual file upload API call
     const mockFile: FileItem = {
       id: `file-${Date.now()}`,
       name: `Document-${Date.now()}.pdf`,
@@ -128,7 +146,6 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
       size: '1.2 MB',
       modifiedDate: new Date().toISOString().split('T')[0],
       author: 'You',
-      status: 'Draft',
       version: 'Rev A'
     };
     onUpdateFiles([...project.files, mockFile]);
@@ -187,15 +204,13 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
         ))}
       </div>
 
-      {/* File List */}
+      {/* File List - Simplified folder-style view */}
       <Card className="overflow-hidden">
         <div className="border-b border-border bg-secondary px-4 py-3 grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground">
-          <div className="col-span-5">Name</div>
+          <div className="col-span-6">Name</div>
           <div className="col-span-2">Modified</div>
-          <div className="col-span-1">Size</div>
-          <div className="col-span-1">Version</div>
-          <div className="col-span-2">Status</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-2">Size</div>
+          <div className="col-span-2 text-right">Actions</div>
         </div>
 
         {folders.length === 0 && files.length === 0 ? (
@@ -213,15 +228,13 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
                 className="px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors cursor-pointer"
                 onDoubleClick={() => setCurrentFolderId(folder.id)}
               >
-                <div className="col-span-5 flex items-center gap-3">
+                <div className="col-span-6 flex items-center gap-3">
                   <Folder className="h-5 w-5 text-warning" />
                   <span className="text-sm font-medium">{folder.name}</span>
                 </div>
                 <div className="col-span-2 text-sm text-muted-foreground">{folder.modifiedDate}</div>
-                <div className="col-span-1 text-sm text-muted-foreground">—</div>
-                <div className="col-span-1 text-sm text-muted-foreground">—</div>
-                <div className="col-span-2">—</div>
-                <div className="col-span-1 text-right">
+                <div className="col-span-2 text-sm text-muted-foreground">—</div>
+                <div className="col-span-2 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -257,30 +270,13 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
                 key={file.id}
                 className="px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors"
               >
-                <div className="col-span-5 flex items-center gap-3">
+                <div className="col-span-6 flex items-center gap-3">
                   {getFileIcon(file.fileType)}
                   <span className="text-sm">{file.name}</span>
                 </div>
                 <div className="col-span-2 text-sm text-muted-foreground">{file.modifiedDate}</div>
-                <div className="col-span-1 text-sm text-muted-foreground">{file.size || '—'}</div>
-                <div className="col-span-1 text-sm text-muted-foreground">{file.version || '—'}</div>
-                <div className="col-span-2">
-                  {file.status && (
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        "text-[10px]",
-                        file.status === 'Current' && "bg-success/10 text-success",
-                        file.status === 'In Review' && "bg-warning/10 text-warning",
-                        file.status === 'Draft' && "bg-muted text-muted-foreground",
-                        file.status === 'Approved' && "bg-primary/10 text-primary"
-                      )}
-                    >
-                      {file.status}
-                    </Badge>
-                  )}
-                </div>
-                <div className="col-span-1 text-right">
+                <div className="col-span-2 text-sm text-muted-foreground">{file.size || '—'}</div>
+                <div className="col-span-2 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">

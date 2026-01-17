@@ -195,7 +195,7 @@ const Index = () => {
     if (updated) setSelectedProject(updated);
   };
 
-  const handleAddBundle = (bundle: Bundle) => {
+const handleAddBundle = (bundle: Bundle) => {
     if (!selectedProject) return;
     
     const updatedProjects = projects.map(p => {
@@ -203,6 +203,24 @@ const Index = () => {
         return {
           ...p,
           appliedBundles: [...p.appliedBundles, bundle]
+        };
+      }
+      return p;
+    });
+    
+    setProjects(updatedProjects);
+    const updated = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updated) setSelectedProject(updated);
+  };
+
+  const handleRemoveBundle = (bundleId: string) => {
+    if (!selectedProject) return;
+    
+    const updatedProjects = projects.map(p => {
+      if (p.id === selectedProject.id) {
+        return {
+          ...p,
+          appliedBundles: p.appliedBundles.filter(b => b.id !== bundleId)
         };
       }
       return p;
@@ -353,6 +371,7 @@ const Index = () => {
             onClose={() => setShowAddBundle(false)}
             appliedBundles={selectedProject.appliedBundles}
             onAdd={handleAddBundle}
+            onRemove={handleRemoveBundle}
           />
         </>
       )}
