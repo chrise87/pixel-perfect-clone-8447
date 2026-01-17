@@ -7,6 +7,20 @@ export interface Collaborator {
   permission: string;
   isOwner?: boolean;
   roleFilterEnabled: boolean;
+  status?: 'active' | 'inactive';
+}
+
+export interface FileItem {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  fileType?: string; // pdf, docx, xlsx, etc
+  size?: string;
+  modifiedDate?: string;
+  author?: string;
+  parentId: string | null;
+  status?: string;
+  version?: string;
 }
 
 export interface ProjectDocument {
@@ -32,6 +46,9 @@ export interface Todo {
   priority: string;
   due: string;
   assignee?: string;
+  status?: 'pending' | 'completed';
+  notes?: string;
+  createdAt?: string;
 }
 
 export interface Project {
@@ -51,6 +68,7 @@ export interface Project {
   appliedBundles: Bundle[];
   personalTodos: Todo[];
   globalTodos: Todo[];
+  files: FileItem[];
 }
 
 export interface BuildingType {
