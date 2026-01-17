@@ -51,12 +51,17 @@ const Index = () => {
       currentStage: data.currentStage,
       image: null,
       collaborators: [
-        { id: 1, name: 'Chris Eliades', initials: 'CE', color: '#3B82F6', role: 'architect', permission: 'admin', isOwner: true, roleFilterEnabled: true }
+        { id: 1, name: 'Chris Eliades', initials: 'CE', color: '#3B82F6', role: 'architect', permission: 'admin', isOwner: true, roleFilterEnabled: true, status: 'active' }
       ],
       projectDocuments: [],
       appliedBundles: [],
       personalTodos: [],
-      globalTodos: []
+      globalTodos: [],
+      files: [
+        { id: 'drawings', name: 'Drawings', type: 'folder', parentId: null, modifiedDate: new Date().toISOString().split('T')[0] },
+        { id: 'reports', name: 'Reports', type: 'folder', parentId: null, modifiedDate: new Date().toISOString().split('T')[0] },
+        { id: 'reviews', name: 'Reviews', type: 'folder', parentId: null, modifiedDate: new Date().toISOString().split('T')[0] },
+      ]
     };
     setProjects([...projects, newProject]);
     setCurrentView('list');
