@@ -4,14 +4,20 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDashboard } from "@/components/ProjectDashboard";
 import { NewProjectForm } from "@/components/NewProjectForm";
+import { ProjectSettings } from "@/components/ProjectSettings";
+import { ProjectDocuments } from "@/components/ProjectDocuments";
+import { ProjectTasks } from "@/components/ProjectTasks";
+import { CopilotChat } from "@/components/CopilotChat";
+import { ComplianceReview } from "@/components/ComplianceReview";
+import { NewReportWizard } from "@/components/NewReportWizard";
 import { AddTaskModal } from "@/components/AddTaskModal";
 import { AddCollaboratorModal } from "@/components/AddCollaboratorModal";
 import { AddBundleModal } from "@/components/AddBundleModal";
-import { Project, Collaborator, Bundle } from "@/types/project";
+import { Project, Collaborator, Bundle, Todo, FileItem } from "@/types/project";
 import { sampleProjects } from "@/data/sampleProjects";
 import { platformUsers } from "@/data/constants";
 
-type ViewType = 'list' | 'dashboard' | 'newProject';
+type ViewType = 'list' | 'dashboard' | 'newProject' | 'settings' | 'documents' | 'tasks' | 'copilot' | 'complianceReview' | 'newReport';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('list');
@@ -67,6 +73,11 @@ const Index = () => {
     setCurrentView('list');
   };
 
+  const updateSelectedProject = (updatedProject: Project) => {
+    setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
+    setSelectedProject(updatedProject);
+  };
+
   const handleAddTask = (task: { text: string; priority: string; due: string; assignee?: string }) => {
     if (!selectedProject) return;
     
@@ -75,18 +86,43 @@ const Index = () => {
         if (taskType === 'personal') {
           return {
             ...p,
-            personalTodos: [...p.personalTodos, { id: Date.now(), ...task }]
+            personalTodos: [...p.personalTodos, { id: Date.now(), ...task, status: 'pending' as const }]
           };
         } else {
           return {
             ...p,
-            globalTodos: [...p.globalTodos, { id: Date.now(), ...task }]
+            globalTodos: [...p.globalTodos, { id: Date.now(), ...task, status: 'pending' as const }]
           };
         }
       }
       return p;
     });
     
+    setProjects(updatedProjects);
+    const updated = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updated) setSelectedProject(updated);
+  };
+
+  const handleUpdateTask = (taskId: number, type: 'personal' | 'global', updates: Partial<Todo>) => {
+    if (!selectedProject) return;
+
+    const updatedProjects = projects.map(p => {
+      if (p.id === selectedProject.id) {
+        if (type === 'personal') {
+          return {
+            ...p,
+            personalTodos: p.personalTodos.map(t => t.id === taskId ? { ...t, ...updates } : t)
+          };
+        } else {
+          return {
+            ...p,
+            globalTodos: p.globalTodos.map(t => t.id === taskId ? { ...t, ...updates } : t)
+          };
+        }
+      }
+      return p;
+    });
+
     setProjects(updatedProjects);
     const updated = updatedProjects.find(p => p.id === selectedProject.id);
     if (updated) setSelectedProject(updated);
@@ -102,7 +138,8 @@ const Index = () => {
       color: user.color,
       role: 'architect',
       permission: 'view',
-      roleFilterEnabled: true
+      roleFilterEnabled: true,
+      status: 'active'
     };
 
     const updatedProjects = projects.map(p => {
@@ -115,6 +152,44 @@ const Index = () => {
       return p;
     });
     
+    setProjects(updatedProjects);
+    const updated = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updated) setSelectedProject(updated);
+  };
+
+  const handleUpdateCollaborator = (collaboratorId: number, updates: Partial<Collaborator>) => {
+    if (!selectedProject) return;
+
+    const updatedProjects = projects.map(p => {
+      if (p.id === selectedProject.id) {
+        return {
+          ...p,
+          collaborators: p.collaborators.map(c => 
+            c.id === collaboratorId ? { ...c, ...updates } : c
+          )
+        };
+      }
+      return p;
+    });
+
+    setProjects(updatedProjects);
+    const updated = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updated) setSelectedProject(updated);
+  };
+
+  const handleRemoveCollaborator = (collaboratorId: number) => {
+    if (!selectedProject) return;
+
+    const updatedProjects = projects.map(p => {
+      if (p.id === selectedProject.id) {
+        return {
+          ...p,
+          collaborators: p.collaborators.filter(c => c.id !== collaboratorId)
+        };
+      }
+      return p;
+    });
+
     setProjects(updatedProjects);
     const updated = updatedProjects.find(p => p.id === selectedProject.id);
     if (updated) setSelectedProject(updated);
@@ -136,6 +211,29 @@ const Index = () => {
     setProjects(updatedProjects);
     const updated = updatedProjects.find(p => p.id === selectedProject.id);
     if (updated) setSelectedProject(updated);
+  };
+
+  const handleUpdateFiles = (files: FileItem[]) => {
+    if (!selectedProject) return;
+
+    const updatedProjects = projects.map(p => {
+      if (p.id === selectedProject.id) {
+        return { ...p, files };
+      }
+      return p;
+    });
+
+    setProjects(updatedProjects);
+    const updated = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updated) setSelectedProject(updated);
+  };
+
+  const handleSaveSettings = (updates: Partial<Project>) => {
+    if (!selectedProject) return;
+
+    const updatedProject = { ...selectedProject, ...updates };
+    updateSelectedProject(updatedProject);
+    setCurrentView('dashboard');
   };
 
   const openAddTask = (type: 'personal' | 'global') => {
@@ -171,6 +269,66 @@ const Index = () => {
             onAddCollaborator={() => setShowAddCollaborator(true)}
             onAddTask={openAddTask}
             onAddBundle={() => setShowAddBundle(true)}
+            onOpenSettings={() => setCurrentView('settings')}
+            onOpenDocuments={() => setCurrentView('documents')}
+            onOpenTasks={() => setCurrentView('tasks')}
+            onOpenCopilot={() => setCurrentView('copilot')}
+            onOpenComplianceReview={() => setCurrentView('complianceReview')}
+            onOpenNewReport={() => setCurrentView('newReport')}
+          />
+        )}
+
+        {currentView === 'settings' && selectedProject && (
+          <ProjectSettings
+            project={selectedProject}
+            onBack={() => setCurrentView('dashboard')}
+            onSave={handleSaveSettings}
+            onAddCollaborator={() => setShowAddCollaborator(true)}
+            onUpdateCollaborator={handleUpdateCollaborator}
+            onRemoveCollaborator={handleRemoveCollaborator}
+          />
+        )}
+
+        {currentView === 'documents' && selectedProject && (
+          <ProjectDocuments
+            project={selectedProject}
+            onBack={() => setCurrentView('dashboard')}
+            onUpdateFiles={handleUpdateFiles}
+          />
+        )}
+
+        {currentView === 'tasks' && selectedProject && (
+          <ProjectTasks
+            project={selectedProject}
+            onBack={() => setCurrentView('dashboard')}
+            onAddTask={openAddTask}
+            onUpdateTask={handleUpdateTask}
+          />
+        )}
+
+        {currentView === 'copilot' && selectedProject && (
+          <CopilotChat
+            project={selectedProject}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        )}
+
+        {currentView === 'complianceReview' && selectedProject && (
+          <ComplianceReview
+            project={selectedProject}
+            onBack={() => setCurrentView('dashboard')}
+            onSaveToReviews={() => {}}
+          />
+        )}
+
+        {currentView === 'newReport' && selectedProject && (
+          <NewReportWizard
+            project={selectedProject}
+            onBack={() => setCurrentView('dashboard')}
+            onCreate={(report) => {
+              console.log('New report created:', report);
+              setCurrentView('dashboard');
+            }}
           />
         )}
       </div>
