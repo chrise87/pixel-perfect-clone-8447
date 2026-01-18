@@ -13,7 +13,7 @@ import { NewReportWizard } from "@/components/NewReportWizard";
 import { AddTaskModal } from "@/components/AddTaskModal";
 import { AddCollaboratorModal } from "@/components/AddCollaboratorModal";
 import { AddBundleModal } from "@/components/AddBundleModal";
-import { Project, Collaborator, Bundle, Todo, FileItem } from "@/types/project";
+import { Project, Collaborator, Bundle, Todo, FileItem, ProjectDocument } from "@/types/project";
 import { sampleProjects } from "@/data/sampleProjects";
 import { platformUsers } from "@/data/constants";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
@@ -256,6 +256,24 @@ const handleAddBundle = (bundle: Bundle) => {
     if (updated) setSelectedProject(updated);
   };
 
+  const handleAddToProjectDocuments = (docs: ProjectDocument[]) => {
+    if (!selectedProject) return;
+
+    const updatedProjects = projects.map(p => {
+      if (p.id === selectedProject.id) {
+        return { 
+          ...p, 
+          projectDocuments: [...p.projectDocuments, ...docs] 
+        };
+      }
+      return p;
+    });
+
+    setProjects(updatedProjects);
+    const updated = updatedProjects.find(p => p.id === selectedProject.id);
+    if (updated) setSelectedProject(updated);
+  };
+
   const handleSaveSettings = (updates: Partial<Project>) => {
     if (!selectedProject) return;
 
@@ -330,6 +348,7 @@ const handleAddBundle = (bundle: Bundle) => {
             project={selectedProject}
             onBack={() => setCurrentView('dashboard')}
             onUpdateFiles={handleUpdateFiles}
+            onAddToProjectDocuments={handleAddToProjectDocuments}
           />
         )}
 
