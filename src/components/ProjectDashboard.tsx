@@ -84,25 +84,26 @@ export function ProjectDashboard({
   const gridGap = isCompact ? 'gap-4' : 'gap-6';
 
   return (
-    <main className={cn("flex-1 bg-background overflow-auto", isCompact ? "p-6" : "p-8")}>
+    <main className={cn("flex-1 bg-background overflow-auto", isCompact ? "p-4 md:p-6" : "p-4 md:p-8")}>
       {/* Header Row */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Projects
+          <span className="hidden sm:inline">Back to Projects</span>
+          <span className="sm:hidden">Back</span>
         </button>
         <ViewDensityToggle density={viewDensity} onDensityChange={onDensityChange} />
       </div>
 
       {/* Project Header */}
-      <Card className={cn("mb-6", isCompact ? "p-4" : "p-6")}>
-        <div className={cn("flex mb-6", isCompact ? "gap-4" : "gap-6")}>
+      <Card className={cn("mb-4 md:mb-6", isCompact ? "p-3 md:p-4" : "p-4 md:p-6")}>
+        <div className={cn("flex flex-col sm:flex-row mb-4 md:mb-6", isCompact ? "gap-3 md:gap-4" : "gap-4 md:gap-6")}>
           <div className={cn(
-            "bg-secondary rounded-lg flex items-center justify-center flex-shrink-0",
-            isCompact ? "w-20 h-16 text-3xl" : "w-28 h-24 text-4xl"
+            "bg-secondary rounded-lg flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0",
+            isCompact ? "w-16 h-14 md:w-20 md:h-16 text-2xl md:text-3xl" : "w-20 h-16 md:w-28 md:h-24 text-3xl md:text-4xl"
           )}>
             {project.image ? (
               <img src={project.image} alt={project.name} className="w-full h-full object-cover rounded-lg" />
@@ -111,19 +112,19 @@ export function ProjectDashboard({
             )}
           </div>
 
-          <div className="flex-1">
-            <div className="flex justify-between items-start mb-2">
+          <div className="flex-1 text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-2 mb-2">
               <div>
-                <h1 className={cn("font-semibold text-foreground", isCompact ? "text-lg" : "text-xl")}>{project.name}</h1>
-                <p className="text-sm text-muted-foreground">{project.address || project.location}</p>
+                <h1 className={cn("font-semibold text-foreground", isCompact ? "text-base md:text-lg" : "text-lg md:text-xl")}>{project.name}</h1>
+                <p className="text-xs md:text-sm text-muted-foreground">{project.address || project.location}</p>
               </div>
               <Button variant="outline" size="sm" className="gap-2" onClick={onOpenSettings}>
                 <Settings className="h-4 w-4" />
-                {!isCompact && "Project Settings"}
+                <span className="hidden md:inline">{!isCompact && "Project Settings"}</span>
               </Button>
             </div>
 
-            <div className={cn("grid gap-4 text-sm", isCompact ? "grid-cols-2" : "grid-cols-4")}>
+            <div className={cn("grid gap-2 md:gap-4 text-xs md:text-sm", isCompact ? "grid-cols-2" : "grid-cols-2 md:grid-cols-4")}>
               <div>
                 <span className="text-muted-foreground">Type: </span>
                 <span className="font-medium">{buildingTypes.find(t => t.id === project.buildingType)?.label}</span>
@@ -182,9 +183,9 @@ export function ProjectDashboard({
         isCollapsed={isSectionCollapsed('quick-access')}
         onToggle={() => onToggleSection('quick-access')}
         density={viewDensity}
-        className="mb-6"
+        className="mb-4 md:mb-6"
       >
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <QuickAccessCard
             icon={Sparkles}
             title="Copilot"
@@ -286,7 +287,7 @@ export function ProjectDashboard({
       </CollapsibleSection>
 
       {/* Documents & Bundles Row */}
-      <div className={cn("grid grid-cols-2 mb-6", gridGap)}>
+      <div className={cn("grid grid-cols-1 md:grid-cols-2 mb-4 md:mb-6", gridGap)}>
         <CollapsibleSection
           id="project-documents"
           title="Project Documents"
@@ -347,7 +348,7 @@ export function ProjectDashboard({
       </div>
 
       {/* Tasks Row */}
-      <div className={cn("grid grid-cols-2", gridGap)}>
+      <div className={cn("grid grid-cols-1 md:grid-cols-2", gridGap)}>
         <CollapsibleSection
           id="my-todo"
           title="My To-Do"

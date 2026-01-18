@@ -288,26 +288,27 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <main className="flex-1 p-8 bg-background overflow-auto">
+    <main className="flex-1 p-4 md:p-8 bg-background overflow-auto">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          <span className="hidden sm:inline">Back to Dashboard</span>
+          <span className="sm:hidden">Back</span>
         </button>
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground mb-1">
+            <h1 className="text-xl md:text-2xl font-semibold text-foreground mb-1">
               Project Documents
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground hidden sm:block">
               Manage all project files and folders
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button 
               variant={selectionMode ? "secondary" : "outline"} 
               size="sm" 
@@ -318,7 +319,7 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
               className="gap-1.5"
             >
               <CheckSquare className="h-4 w-4" />
-              {selectionMode ? 'Cancel' : 'Select'}
+              <span className="hidden sm:inline">{selectionMode ? 'Cancel' : 'Select'}</span>
             </Button>
             {selectionMode && selectedIds.size > 0 && (
               <>
@@ -328,7 +329,9 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
                   className="gap-1.5"
                 >
                   <FolderPlus className="h-4 w-4" />
-                  Add to Project ({selectedIds.size})
+                  <span className="hidden sm:inline">Add to Project</span>
+                  <span className="sm:hidden">Add</span>
+                  ({selectedIds.size})
                 </Button>
                 <Button 
                   variant="destructive" 
@@ -337,7 +340,6 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
                   className="gap-1.5"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete
                 </Button>
               </>
             )}
@@ -345,11 +347,11 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
               <>
                 <Button variant="outline" size="sm" onClick={() => setShowNewFolder(true)} className="gap-1.5">
                   <FolderPlus className="h-4 w-4" />
-                  New Folder
+                  <span className="hidden sm:inline">New Folder</span>
                 </Button>
                 <Button size="sm" onClick={handleUploadClick} className="gap-1.5">
                   <Upload className="h-4 w-4" />
-                  Upload
+                  <span className="hidden sm:inline">Upload</span>
                 </Button>
               </>
             )}
@@ -377,7 +379,8 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
 
       {/* File List */}
       <Card className="overflow-hidden">
-        <div className="border-b border-border bg-secondary px-4 py-3 grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground">
+        {/* Desktop header */}
+        <div className="border-b border-border bg-secondary px-3 md:px-4 py-3 hidden sm:grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground">
           {selectionMode && (
             <div className="col-span-1 flex items-center">
               <Checkbox
@@ -388,9 +391,22 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
             </div>
           )}
           <div className={selectionMode ? "col-span-5" : "col-span-6"}>Name</div>
-          <div className="col-span-2">Modified</div>
-          <div className="col-span-2">Size</div>
-          <div className="col-span-2 text-right">Actions</div>
+          <div className="col-span-2 hidden md:block">Modified</div>
+          <div className="col-span-2 hidden md:block">Size</div>
+          <div className="col-span-2 md:col-span-2 text-right">Actions</div>
+        </div>
+
+        {/* Mobile header */}
+        <div className="border-b border-border bg-secondary px-3 py-3 sm:hidden flex items-center justify-between text-xs font-medium text-muted-foreground">
+          {selectionMode && (
+            <Checkbox
+              checked={allInFolderSelected}
+              className={someInFolderSelected && !allInFolderSelected ? 'opacity-50' : ''}
+              onCheckedChange={selectAllInFolder}
+            />
+          )}
+          <span>Name</span>
+          <span>Actions</span>
         </div>
 
         {folders.length === 0 && files.length === 0 ? (
@@ -408,12 +424,12 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
                 <div
                   key={folder.id}
                   className={cn(
-                    "px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors",
+                    "px-3 md:px-4 py-3 flex sm:grid sm:grid-cols-12 gap-2 md:gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors",
                     selectedIds.has(folder.id) && "bg-primary/5"
                   )}
                 >
                   {selectionMode && (
-                    <div className="col-span-1">
+                    <div className="sm:col-span-1 flex-shrink-0">
                       <Checkbox
                         checked={folderState === 'all'}
                         className={folderState === 'partial' ? 'opacity-50' : ''}
@@ -423,17 +439,17 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
                   )}
                   <div 
                     className={cn(
-                      "flex items-center gap-3 cursor-pointer",
-                      selectionMode ? "col-span-5" : "col-span-6"
+                      "flex items-center gap-2 md:gap-3 cursor-pointer flex-1 min-w-0",
+                      selectionMode ? "sm:col-span-5" : "sm:col-span-6"
                     )}
                     onClick={() => !selectionMode && setCurrentFolderId(folder.id)}
                   >
-                    <Folder className="h-5 w-5 text-warning" />
-                    <span className="text-sm font-medium">{folder.name}</span>
+                    <Folder className="h-5 w-5 text-warning flex-shrink-0" />
+                    <span className="text-sm font-medium truncate">{folder.name}</span>
                   </div>
-                  <div className="col-span-2 text-sm text-muted-foreground">{folder.modifiedDate}</div>
-                  <div className="col-span-2 text-sm text-muted-foreground">—</div>
-                  <div className="col-span-2 text-right">
+                  <div className="col-span-2 text-sm text-muted-foreground hidden md:block">{folder.modifiedDate}</div>
+                  <div className="col-span-2 text-sm text-muted-foreground hidden md:block">—</div>
+                  <div className="sm:col-span-2 text-right flex-shrink-0">
                     {!selectionMode && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -471,12 +487,12 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
               <div
                 key={file.id}
                 className={cn(
-                  "px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors",
+                  "px-3 md:px-4 py-3 flex sm:grid sm:grid-cols-12 gap-2 md:gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors",
                   selectedIds.has(file.id) && "bg-primary/5"
                 )}
               >
                 {selectionMode && (
-                  <div className="col-span-1">
+                  <div className="sm:col-span-1 flex-shrink-0">
                     <Checkbox
                       checked={selectedIds.has(file.id)}
                       onCheckedChange={() => toggleSelection(file.id)}
@@ -484,15 +500,15 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
                   </div>
                 )}
                 <div className={cn(
-                  "flex items-center gap-3",
-                  selectionMode ? "col-span-5" : "col-span-6"
+                  "flex items-center gap-2 md:gap-3 flex-1 min-w-0",
+                  selectionMode ? "sm:col-span-5" : "sm:col-span-6"
                 )}>
                   {getFileIcon(file.fileType)}
-                  <span className="text-sm">{file.name}</span>
+                  <span className="text-sm truncate">{file.name}</span>
                 </div>
-                <div className="col-span-2 text-sm text-muted-foreground">{file.modifiedDate}</div>
-                <div className="col-span-2 text-sm text-muted-foreground">{file.size || '—'}</div>
-                <div className="col-span-2 text-right">
+                <div className="col-span-2 text-sm text-muted-foreground hidden md:block">{file.modifiedDate}</div>
+                <div className="col-span-2 text-sm text-muted-foreground hidden md:block">{file.size || '—'}</div>
+                <div className="sm:col-span-2 text-right flex-shrink-0">
                   {!selectionMode && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

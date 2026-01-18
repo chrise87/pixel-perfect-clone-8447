@@ -40,6 +40,9 @@ const Index = () => {
   const [taskType, setTaskType] = useState<'personal' | 'global'>('personal');
   const [showAddCollaborator, setShowAddCollaborator] = useState(false);
   const [showAddBundle, setShowAddBundle] = useState(false);
+  
+  // Mobile sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNavChange = (nav: string) => {
     setActiveNav(nav);
@@ -289,9 +292,14 @@ const handleAddBundle = (bundle: Bundle) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader />
-      <div className="flex flex-1">
-        <AppSidebar activeNav={activeNav} onNavChange={handleNavChange} />
+      <AppHeader onMenuToggle={() => setSidebarOpen(true)} />
+      <div className="flex flex-1 overflow-hidden">
+        <AppSidebar 
+          activeNav={activeNav} 
+          onNavChange={handleNavChange}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
         
         {currentView === 'list' && (
           <ProjectList
