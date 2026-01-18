@@ -16,6 +16,7 @@ import { AddBundleModal } from "@/components/AddBundleModal";
 import { Project, Collaborator, Bundle, Todo, FileItem } from "@/types/project";
 import { sampleProjects } from "@/data/sampleProjects";
 import { platformUsers } from "@/data/constants";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 type ViewType = 'list' | 'dashboard' | 'newProject' | 'settings' | 'documents' | 'tasks' | 'copilot' | 'complianceReview' | 'newReport';
 
@@ -24,6 +25,15 @@ const Index = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeNav, setActiveNav] = useState('projects');
   const [projects, setProjects] = useState<Project[]>(sampleProjects);
+
+  // User preferences for pins, collapsed sections, density
+  const { 
+    preferences, 
+    togglePinProject, 
+    toggleSection, 
+    isSectionCollapsed, 
+    setViewDensity 
+  } = useUserPreferences();
 
   // Modal states
   const [showAddTask, setShowAddTask] = useState(false);
@@ -270,6 +280,10 @@ const handleAddBundle = (bundle: Bundle) => {
             projects={projects}
             onSelectProject={handleSelectProject}
             onNewProject={() => setCurrentView('newProject')}
+            pinnedProjects={preferences.pinnedProjects}
+            onTogglePin={togglePinProject}
+            viewDensity={preferences.viewDensity}
+            onDensityChange={setViewDensity}
           />
         )}
 
@@ -293,6 +307,10 @@ const handleAddBundle = (bundle: Bundle) => {
             onOpenCopilot={() => setCurrentView('copilot')}
             onOpenComplianceReview={() => setCurrentView('complianceReview')}
             onOpenNewReport={() => setCurrentView('newReport')}
+            viewDensity={preferences.viewDensity}
+            onDensityChange={setViewDensity}
+            isSectionCollapsed={isSectionCollapsed}
+            onToggleSection={toggleSection}
           />
         )}
 
