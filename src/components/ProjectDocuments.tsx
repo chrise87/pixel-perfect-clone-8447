@@ -229,48 +229,24 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles, onAddToProjec
   const handleAddToProject = () => {
     if (!onAddToProjectDocuments) return;
     
-    // Get all selected files (not folders) and convert to ProjectDocument format
+    // Add selected items (files and folders) to projectDocuments
     const docsToAdd: ProjectDocument[] = [];
     
     selectedIds.forEach(id => {
       const item = project.files.find(f => f.id === id);
-      if (item && item.type === 'file') {
+      if (item) {
         // Check if already in projectDocuments
         const alreadyAdded = project.projectDocuments.some(d => d.name === item.name);
         if (!alreadyAdded) {
           docsToAdd.push({
             id: Date.now() + Math.random(),
             name: item.name,
-            type: item.fileType || 'document',
+            type: item.type === 'folder' ? 'folder' : (item.fileType || 'document'),
             status: 'current',
             version: item.version || 'Rev A',
             author: item.author || 'Unknown'
           });
         }
-      } else if (item && item.type === 'folder') {
-        // Get all files in folder recursively
-        const getFilesInFolder = (folderId: string) => {
-          project.files.forEach(f => {
-            if (f.parentId === folderId) {
-              if (f.type === 'file') {
-                const alreadyAdded = project.projectDocuments.some(d => d.name === f.name);
-                if (!alreadyAdded) {
-                  docsToAdd.push({
-                    id: Date.now() + Math.random(),
-                    name: f.name,
-                    type: f.fileType || 'document',
-                    status: 'current',
-                    version: f.version || 'Rev A',
-                    author: f.author || 'Unknown'
-                  });
-                }
-              } else {
-                getFilesInFolder(f.id);
-              }
-            }
-          });
-        };
-        getFilesInFolder(item.id);
       }
     });
     
