@@ -3,6 +3,7 @@
  * 
  * DEVELOPER NOTES FOR INTEGRATION:
  * - This component displays a folder/file browser for project documents
+ * - Now includes checkbox selection for folders/files
  * - Props to wire up:
  *   - project: Project object with files array (FileItem[])
  *   - onBack: navigation callback
@@ -12,14 +13,12 @@
  *   - File upload endpoint to handle actual file uploads
  *   - File/folder CRUD operations
  *   - Replace mock file uploads with actual API calls
- * 
- * - The status column has been removed as requested
- * - Files are now displayed in a cleaner folder-style view
  */
 
-import { ArrowLeft, Folder, File, Upload, FolderPlus, MoreVertical, Trash2, Move, Download, ChevronRight, FileText, FileSpreadsheet, FileImage } from "lucide-react";
+import { ArrowLeft, Folder, File, Upload, FolderPlus, MoreVertical, Trash2, Move, Download, ChevronRight, FileText, FileSpreadsheet, FileImage, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -59,6 +58,8 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
   const [newFolderName, setNewFolderName] = useState('');
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileItem | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
 
   // Get breadcrumb path
   const getBreadcrumbs = () => {
@@ -86,6 +87,77 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
   // Get all folders for move dialog
   const allFolders = project.files.filter(f => f.type === 'folder');
 
+  // Toggle item selection
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Select all in current folder
+  const selectAllInFolder = () => {
+    const allIds = currentItems.map(item => item.id);
+    const allSelected = allIds.every(id => selectedIds.has(id));
+    
+    if (allSelected) {
+      // Deselect all in folder
+      const newSelected = new Set(selectedIds);
+      allIds.forEach(id => newSelected.delete(id));
+      setSelectedIds(newSelected);
+    } else {
+      // Select all in folder
+      const newSelected = new Set(selectedIds);
+      allIds.forEach(id => newSelected.add(id));
+      setSelectedIds(newSelected);
+    }
+  };
+
+  // Check if all items in current folder are selected
+  const allInFolderSelected = currentItems.length > 0 && currentItems.every(item => selectedIds.has(item.id));
+  const someInFolderSelected = currentItems.some(item => selectedIds.has(item.id));
+
+  // Get all items in a folder recursively
+  const getAllItemsInFolder = (folderId: string): string[] => {
+    const items: string[] = [folderId];
+    project.files.forEach(f => {
+      if (f.parentId === folderId) {
+        if (f.type === 'folder') {
+          items.push(...getAllItemsInFolder(f.id));
+        } else {
+          items.push(f.id);
+        }
+      }
+    });
+    return items;
+  };
+
+  // Toggle folder with all its contents
+  const toggleFolderWithContents = (folderId: string) => {
+    const allItems = getAllItemsInFolder(folderId);
+    const allSelected = allItems.every(id => selectedIds.has(id));
+    
+    const newSelected = new Set(selectedIds);
+    if (allSelected) {
+      allItems.forEach(id => newSelected.delete(id));
+    } else {
+      allItems.forEach(id => newSelected.add(id));
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Check folder selection state
+  const getFolderSelectionState = (folderId: string): 'none' | 'partial' | 'all' => {
+    const allItems = getAllItemsInFolder(folderId);
+    const selectedCount = allItems.filter(id => selectedIds.has(id)).length;
+    if (selectedCount === 0) return 'none';
+    if (selectedCount === allItems.length) return 'all';
+    return 'partial';
+  };
+
   const handleCreateFolder = () => {
     if (!newFolderName.trim()) return;
     
@@ -103,7 +175,6 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
   };
 
   const handleDeleteItem = (item: FileItem) => {
-    // Also delete all children if it's a folder
     const idsToDelete = new Set<string>([item.id]);
     
     if (item.type === 'folder') {
@@ -121,6 +192,37 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
     }
     
     onUpdateFiles(project.files.filter(f => !idsToDelete.has(f.id)));
+    
+    // Also remove from selection
+    const newSelected = new Set(selectedIds);
+    idsToDelete.forEach(id => newSelected.delete(id));
+    setSelectedIds(newSelected);
+  };
+
+  const handleDeleteSelected = () => {
+    const idsToDelete = new Set<string>();
+    
+    selectedIds.forEach(id => {
+      idsToDelete.add(id);
+      const item = project.files.find(f => f.id === id);
+      if (item?.type === 'folder') {
+        const findChildren = (parentId: string) => {
+          project.files.forEach(f => {
+            if (f.parentId === parentId) {
+              idsToDelete.add(f.id);
+              if (f.type === 'folder') {
+                findChildren(f.id);
+              }
+            }
+          });
+        };
+        findChildren(id);
+      }
+    });
+    
+    onUpdateFiles(project.files.filter(f => !idsToDelete.has(f.id)));
+    setSelectedIds(new Set());
+    setSelectionMode(false);
   };
 
   const handleMoveItem = (targetFolderId: string | null) => {
@@ -136,7 +238,6 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
   };
 
   const handleUploadClick = () => {
-    // TODO: Replace with actual file upload API call
     const mockFile: FileItem = {
       id: `file-${Date.now()}`,
       name: `Document-${Date.now()}.pdf`,
@@ -174,14 +275,41 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowNewFolder(true)} className="gap-1.5">
-              <FolderPlus className="h-4 w-4" />
-              New Folder
+            <Button 
+              variant={selectionMode ? "secondary" : "outline"} 
+              size="sm" 
+              onClick={() => {
+                setSelectionMode(!selectionMode);
+                if (selectionMode) setSelectedIds(new Set());
+              }} 
+              className="gap-1.5"
+            >
+              <CheckSquare className="h-4 w-4" />
+              {selectionMode ? 'Cancel' : 'Select'}
             </Button>
-            <Button size="sm" onClick={handleUploadClick} className="gap-1.5">
-              <Upload className="h-4 w-4" />
-              Upload
-            </Button>
+            {selectionMode && selectedIds.size > 0 && (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleDeleteSelected}
+                className="gap-1.5"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete ({selectedIds.size})
+              </Button>
+            )}
+            {!selectionMode && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setShowNewFolder(true)} className="gap-1.5">
+                  <FolderPlus className="h-4 w-4" />
+                  New Folder
+                </Button>
+                <Button size="sm" onClick={handleUploadClick} className="gap-1.5">
+                  <Upload className="h-4 w-4" />
+                  Upload
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -204,10 +332,19 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
         ))}
       </div>
 
-      {/* File List - Simplified folder-style view */}
+      {/* File List */}
       <Card className="overflow-hidden">
         <div className="border-b border-border bg-secondary px-4 py-3 grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground">
-          <div className="col-span-6">Name</div>
+          {selectionMode && (
+            <div className="col-span-1 flex items-center">
+              <Checkbox
+                checked={allInFolderSelected}
+                className={someInFolderSelected && !allInFolderSelected ? 'opacity-50' : ''}
+                onCheckedChange={selectAllInFolder}
+              />
+            </div>
+          )}
+          <div className={selectionMode ? "col-span-5" : "col-span-6"}>Name</div>
           <div className="col-span-2">Modified</div>
           <div className="col-span-2">Size</div>
           <div className="col-span-2 text-right">Actions</div>
@@ -222,92 +359,142 @@ export function ProjectDocuments({ project, onBack, onUpdateFiles }: ProjectDocu
         ) : (
           <div>
             {/* Folders */}
-            {folders.map(folder => (
-              <div
-                key={folder.id}
-                className="px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors cursor-pointer"
-                onDoubleClick={() => setCurrentFolderId(folder.id)}
-              >
-                <div className="col-span-6 flex items-center gap-3">
-                  <Folder className="h-5 w-5 text-warning" />
-                  <span className="text-sm font-medium">{folder.name}</span>
+            {folders.map(folder => {
+              const folderState = getFolderSelectionState(folder.id);
+              return (
+                <div
+                  key={folder.id}
+                  className={cn(
+                    "px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors",
+                    selectedIds.has(folder.id) && "bg-primary/5"
+                  )}
+                >
+                  {selectionMode && (
+                    <div className="col-span-1">
+                      <Checkbox
+                        checked={folderState === 'all'}
+                        className={folderState === 'partial' ? 'opacity-50' : ''}
+                        onCheckedChange={() => toggleFolderWithContents(folder.id)}
+                      />
+                    </div>
+                  )}
+                  <div 
+                    className={cn(
+                      "flex items-center gap-3 cursor-pointer",
+                      selectionMode ? "col-span-5" : "col-span-6"
+                    )}
+                    onClick={() => !selectionMode && setCurrentFolderId(folder.id)}
+                  >
+                    <Folder className="h-5 w-5 text-warning" />
+                    <span className="text-sm font-medium">{folder.name}</span>
+                  </div>
+                  <div className="col-span-2 text-sm text-muted-foreground">{folder.modifiedDate}</div>
+                  <div className="col-span-2 text-sm text-muted-foreground">—</div>
+                  <div className="col-span-2 text-right">
+                    {!selectionMode && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setCurrentFolderId(folder.id)}>
+                            <Folder className="h-4 w-4 mr-2" />
+                            Open
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSelectedItem(folder); setShowMoveDialog(true); }}>
+                            <Move className="h-4 w-4 mr-2" />
+                            Move
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDeleteItem(folder)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </div>
-                <div className="col-span-2 text-sm text-muted-foreground">{folder.modifiedDate}</div>
-                <div className="col-span-2 text-sm text-muted-foreground">—</div>
-                <div className="col-span-2 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setCurrentFolderId(folder.id)}>
-                        <Folder className="h-4 w-4 mr-2" />
-                        Open
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setSelectedItem(folder); setShowMoveDialog(true); }}>
-                        <Move className="h-4 w-4 mr-2" />
-                        Move
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => handleDeleteItem(folder)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Files */}
             {files.map(file => (
               <div
                 key={file.id}
-                className="px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors"
+                className={cn(
+                  "px-4 py-3 grid grid-cols-12 gap-4 items-center border-b border-border hover:bg-secondary/50 transition-colors",
+                  selectedIds.has(file.id) && "bg-primary/5"
+                )}
               >
-                <div className="col-span-6 flex items-center gap-3">
+                {selectionMode && (
+                  <div className="col-span-1">
+                    <Checkbox
+                      checked={selectedIds.has(file.id)}
+                      onCheckedChange={() => toggleSelection(file.id)}
+                    />
+                  </div>
+                )}
+                <div className={cn(
+                  "flex items-center gap-3",
+                  selectionMode ? "col-span-5" : "col-span-6"
+                )}>
                   {getFileIcon(file.fileType)}
                   <span className="text-sm">{file.name}</span>
                 </div>
                 <div className="col-span-2 text-sm text-muted-foreground">{file.modifiedDate}</div>
                 <div className="col-span-2 text-sm text-muted-foreground">{file.size || '—'}</div>
                 <div className="col-span-2 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setSelectedItem(file); setShowMoveDialog(true); }}>
-                        <Move className="h-4 w-4 mr-2" />
-                        Move
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => handleDeleteItem(file)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {!selectionMode && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedItem(file); setShowMoveDialog(true); }}>
+                          <Move className="h-4 w-4 mr-2" />
+                          Move
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleDeleteItem(file)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </Card>
+
+      {/* Selection Summary */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between">
+          <span className="text-sm">
+            <strong>{selectedIds.size}</strong> item{selectedIds.size !== 1 ? 's' : ''} selected
+          </span>
+          <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+            Clear Selection
+          </Button>
+        </div>
+      )}
 
       {/* New Folder Dialog */}
       <Dialog open={showNewFolder} onOpenChange={setShowNewFolder}>
