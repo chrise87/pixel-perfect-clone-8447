@@ -48,31 +48,32 @@ export function ProjectList({
   const pinnedCount = pinnedProjects.length;
 
   return (
-    <main className="flex-1 p-8 bg-background overflow-auto">
+    <main className="flex-1 p-4 md:p-8 bg-background overflow-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground mb-1">
+          <h1 className="text-xl md:text-2xl font-semibold text-foreground mb-1">
             Projects
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground hidden sm:block">
             Manage your AEC projects and collaborate with your team
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
           <ViewDensityToggle 
             density={viewDensity} 
             onDensityChange={onDensityChange} 
           />
-          <Button onClick={onNewProject} className="gap-2">
+          <Button onClick={onNewProject} className="gap-2 flex-1 sm:flex-none">
             <Plus className="h-4 w-4" />
-            New Project
+            <span className="hidden sm:inline">New Project</span>
+            <span className="sm:hidden">New</span>
           </Button>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -81,28 +82,30 @@ export function ProjectList({
             className="pl-9"
           />
         </div>
-        <Select defaultValue="all-types">
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all-types">All Types</SelectItem>
-            {buildingTypes.map(type => (
-              <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select defaultValue="all-stages">
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="All Stages" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all-stages">All Stages</SelectItem>
-            <SelectItem value="design">Design</SelectItem>
-            <SelectItem value="construction">Construction</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select defaultValue="all-types">
+            <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-types">All Types</SelectItem>
+              {buildingTypes.map(type => (
+                <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select defaultValue="all-stages">
+            <SelectTrigger className="w-full sm:w-[120px]">
+              <SelectValue placeholder="All Stages" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-stages">All Stages</SelectItem>
+              <SelectItem value="design">Design</SelectItem>
+              <SelectItem value="construction">Construction</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Pinned Section */}
